@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Medicine Tracker</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<style>
+    body{
+        background:url('NextHack.jpg');
+        background-repeat: no-repeat;
+        background-size: cover;
+        /* height: 100vh; */
+        /* font-family:'Poppins','sans-serif'; */
+    }
+    table {
+        border-collapse: collapse;
+        margin-bottom: 10px;
+        margin-top: 50px;
+        margin-left: auto;
+        margin-right: auto;
+        justify-content: center;
+    
+        }
+        table, th, td {
+        border: 3px solid blue;
+        background-color: rgb(208, 205, 248);
+        }
+        th, td {
+        padding: 15px;
+        margin: 40px 50px;
+        }
+        input[type="number"] {
+        width: 50px;
+        }
+    
+    
+    
+    h1{
+        color: white;
+        padding: 10px;
+        margin: 10px;
+        text-align: center;
+        background-color: #7c1cc0;
+    } 
+    
+    form{
+        justify-content: center;
+    
+        display: flex;
+        
+        margin: 40px ;
+        
+        border: 3px solid blue;
+        
+        padding: 10px;
+        
+        background-color: rgb(208, 205, 248);
+    }
+    .site-header .navbar-nav .nav-link {
+        color: #cbd5db;
+      }
+      
+    .site-header .navbar-nav .nav-link:hover {
+        color: #ffffff;
+      }
+      
+    .site-header .navbar-nav .nav-link.active {
+        font-weight: 500;
+      }
+      
+</style> 
+<body>
+
+<header class="site-header">
+    <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+      <div class="container">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarToggle">
+          <div class="navbar-nav mr-auto">
+            <a class="nav-item nav-link" href="{% url 'MedicineTracker-home' %}">Home</a>
+          </div>
+          <!-- Navbar Right Side -->
+
+
+
+          <div class="navbar-nav">
+            {%if user.is_authenticated %}
+            <a class="nav-item nav-link" href="{%url 'logout'%}">Logout</a>
+
+            {%else%}
+            <a class="nav-item nav-link" href="{%url 'login'%}">Login</a>
+            <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
+            {%endif%}
+          </div>
+
+        </div>
+      </div>
+    </nav>
+</header>  
+<h1>Medicine Tracker</h1> 
+<div class="table">
+<table id="medicine-table">
+<tr>
+<th>Name</th>
+<th>Dose</th>
+<th>Times per day</th>
+<th>Last taken</th>
+
+<th>Next dose</th>
+<th>Action</th>
+</tr>
+</table>
+<form class="form">
+<label for="name-input">Name:</label>
+<input type="text" id="name-input" required>
+<label for="dose-input">Dose:</label>
+<input type="number" id="dose-input" min="1" required>
+<label for="times-input">Times per day:</label>
+<input type="number" id="times-input" min="1" required>
+<button type="button" onclick="addMedicine()">Add</button>
+</form>
+<script>
+    let medicines = [];
+
+function addMedicine() {
+let nameInput = document.getElementById("name-input");
+let doseInput = document.getElementById("dose-input");
+let timesInput = document.getElementById("times-input");
+
+let medicine = {
+name: nameInput.value,
+dose: doseInput.value,
+times: timesInput.value,
+lastTaken: null,
+history: []
+};
+
+medicines.push(medicine);
+
+addMedicineRow(medicine);
+
+nameInput.value = "";
+doseInput.value = "";
+timesInput.value = "";
+}
+
+function addMedicineRow(medicine) {
+let table = document.getElementById("medicine-table");
+
+let row = table.insertRow();
+row.setAttribute("data-name", medicine.name);
+
+let nameCell = row.insertCell();
+nameCell.innerText = medicine.name;
+
+let doseCell = row.insertCell();
+doseCell.innerText = medicine.dose;
+
+let timesCell = row.insertCell();
+timesCell.innerText = medicine.times;
+
+let lastTakenCell = row.insertCell();
+lastTakenCell.innerText = medicine.lastTaken ? new Date(medicine.lastTaken).toLocaleString() : "";
+
+let nextDoseCell = row.insertCell();
+nextDoseCell.innerText = getNextDose(medicine);
+
+let actionCell = row.insertCell();
+let takeButton = document.createElement("button");
+takeButton.innerText = "Take";
+takeButton.onclick = function() { takeMedicine(medicine.name); };
+actionCell.appendChild(takeButton);
+
+let editButton = document.createElement("button");
+editButton.innerText = "Edit";
+editButton.onclick = function() { editMedicine(medicine.name); };
+actionCell.appendChild(editButton);
+
+let deleteButton = document.createElement("button");
+deleteButton.innerText = "Delete";
+deleteButton.onclick = function() { deleteMedicine(medicine.name); };
+actionCell.appendChild(deleteButton);
+}
+
+function deleteMedicine(name) {
+let table = document.getElementById("medicine-table");
+
+for (let i = 1; i < table.rows.length; i++) {
+let row = table.rows[i];
+   if (row.getAttribute("data-name") === name) {
+table.deleteRow(i);
+medicines = medicines.filter(m => m.name !== name);
+break;
+}
+}
+}
+
+function editMedicine(name) {
+let medicine = medicines.find(m => m.name === name);
+
+if (!medicine) {
+return;
+}
+
+let newName = prompt("Enter the new name:", medicine.name);
+if (newName === null) {
+return;
+}
+
+let newDose = parseInt(prompt("Enter the new dose:", medicine.dose));
+if (isNaN(newDose) || newDose < 1) {
+alert("Invalid dose.");
+return;
+}
+
+let newTimes = parseInt(prompt("Enter the new times per day:", medicine.times));
+if (isNaN(newTimes) || newTimes < 1) {
+alert("Invalid times per day.");
+return;
+}
+
+medicine.name = newName;
+medicine.dose = newDose;
+medicine.times = newTimes;
+
+let table = document.getElementById("medicine-table");
+for (let i = 1; i < table.rows.length; i++) {
+let row = table.rows[i];
+if (row.getAttribute("data-name") === name) {
+row.setAttribute("data-name", newName);
+row.cells[0].innerText = newName;
+row.cells[1].innerText = newDose;
+row.cells[2].innerText = newTimes;
+row.cells[4].innerText = getNextDose(medicine);
+break;
+}
+}
+}
+
+function takeMedicine(name) {
+let medicine = medicines.find(m => m.name === name);
+
+if (!medicine) {
+return;
+}
+
+let now = Date.now();
+medicine.history.push(now);
+medicine.lastTaken = now;
+
+let table = document.getElementById("medicine-table");
+for (let i = 1; i < table.rows.length; i++) {
+let row = table.rows[i];
+if (row.getAttribute("data-name") === name) {
+row.cells[3].innerText = new Date(now).toLocaleString();
+row.cells[4].innerText = getNextDose(medicine);
+break;
+}
+}
+}
+
+function getNextDose(medicine) {
+if (medicine.lastTaken === null) {
+return "Not taken yet";
+}
+
+let times = parseInt(medicine.times);
+let interval = 24 / times;
+let lastTaken = new Date(medicine.lastTaken);
+let nextDose = new Date(lastTaken.getTime() + interval * 60 * 60 * 1000);
+
+return nextDose.toLocaleString();
+}
+function viewStats(index) {
+    // Get the stats for the medicine
+    var stats = medicineList[index].stats;
+  
+    // If there are no stats, show a message to the user
+    if (stats.length == 0) {
+      alert("No stats available for this medicine.");
+      return;
+    }
+  
+    // Create a new window to display the stats
+    var statsWindow = window.open("", "Stats", "width=400,height=400");
+  
+    // Create a table to display the stats
+    var statsTable = document.createElement("table");
+    statsTable.style.width = "100%";
+  
+    // Add a header row to the table
+    var headerRow = statsTable.insertRow();
+    var dateHeader = headerRow.insertCell();
+    dateHeader.textContent = "Date";
+    var timeHeader = headerRow.insertCell();
+    timeHeader.textContent = "Time";
+  
+    // Loop through each stat and add a row to the table for it
+    stats.forEach(function(stat) {
+      var newRow = statsTable.insertRow();
+      var dateCell = newRow.insertCell();
+      dateCell.textContent = stat.toLocaleDateString();
+      var timeCell = newRow.insertCell();
+      timeCell.textContent = stat.toLocaleTimeString();
+    });
+  
+    // Add the table to the stats window
+    statsWindow.document.body.appendChild(statsTable);
+  }
+
+// Load saved medicines
+if (localStorage.getItem("medicines")) {
+medicines = JSON.parse(localStorage.getItem("medicines"));
+
+for (let i = 0; i < medicines.length; i++) {
+addMedicineRow(medicines[i]);
+}
+}
+
+// Save medicines to local storage when page is unloaded
+window.addEventListener("beforeunload", function() {
+localStorage.setItem("medicines", JSON.stringify(medicines));
+});
+</script>
+</body>
+</html>
